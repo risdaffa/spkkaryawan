@@ -199,7 +199,6 @@ foreach ($karyawans as $karyawan) {
                 </thead>
                 <tbody>
                     <?php
-                    arsort($ranks);
                     foreach ($ranks as $rank) :
                     ?>
                         <tr>
