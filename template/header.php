@@ -47,7 +47,7 @@
 								</ul>
 							</li>
 						<?php endif; ?>
-						<li><a href="ranking-fuzzysaw">Ranking</a>
+						<li><a href="ranking-fuzzysaw.php">Ranking</a>
 							<ul>
 								<li><a href="ranking-saw.php">SAW</a></li>
 								<li><a href="ranking-fuzzysaw.php">Fuzzy SAW</a></li>
