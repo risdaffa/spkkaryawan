@@ -45,20 +45,22 @@ foreach($kriterias as $kriteria):
 	endforeach;
 endforeach;
 
-// >>> STEP 2 Normalisasi Matriks Keputusan (R)
+// >>> STEP 2 Menampilkan Bobot (W)
+// >>> STEP 3 Matriks Ternormalisasi (R)
 $matriks_r = array();
 foreach($matriks_x as $id_kriteria => $nilai_karyawans):
-	// Mencari nilai minimum dan maksimum
-	$nilai_min = min($nilai_karyawans);
-	$nilai_max = max($nilai_karyawans);
-	// Normalisasi nilai menggunakan rumus min-max
-	foreach($nilai_karyawans as $id_karyawan => $nilai_karyawan) {
-		$normalized_value = ($nilai_karyawan - $nilai_min) / ($nilai_max - $nilai_min);
-		$matriks_r[$id_kriteria][$id_karyawan] = $normalized_value;
+	$tipe = $list_kriteria[$id_kriteria]['type'];
+	foreach($nilai_karyawans as $id_alternatif => $nilai) {
+		if($tipe == 'benefit') {
+			$nilai_normal = $nilai / max($nilai_karyawans);
+		} elseif($tipe == 'cost') {
+			$nilai_normal = min($nilai_karyawans) / $nilai;
+		}
+		$matriks_r[$id_kriteria][$id_alternatif] = $nilai_normal;
 	}
 endforeach;
 
-// >>> STEP 3 Matriks Normalisasi Terbobot (Y)
+// >>> STEP 4 Matriks Normalisasi Terbobot (Y)
 $matriks_y = array();
 foreach($kriterias as $kriteria):
 	foreach($karyawans as $karyawan):
@@ -67,11 +69,10 @@ foreach($kriterias as $kriteria):
 		$id_kriteria = $kriteria['id_kriteria'];
 		$nilai_r = $matriks_r[$id_kriteria][$id_karyawan];
 		$matriks_y[$id_kriteria][$id_karyawan] = $bobot * $nilai_r;
-
 	endforeach;
 endforeach;
 
-// >>> STEP 4 Solusi Ideal Positif & Negatif
+// >>> STEP 5 Solusi Ideal Positif & Negatif
 $solusi_ideal_positif = array();
 $solusi_ideal_negatif = array();
 foreach($kriterias as $kriteria):
@@ -91,7 +92,7 @@ foreach($kriterias as $kriteria):
 	}
 endforeach;
 
-// >>> STEP 5 Menghitung Fuzzy Preference Value
+// >>> STEP 6 Menghitung Fuzzy Preference Value
 $fuzzy_preference = array();
 foreach($karyawans as $karyawan):
 	$id_karyawan = $karyawan['id_karyawan'];
@@ -106,7 +107,7 @@ foreach($karyawans as $karyawan):
 	$fuzzy_preference[$id_karyawan] = $fpv;
 endforeach;
 
-// >>> STEP 6 Menampilkan Hasil Perangkingan
+// >>> STEP 7 Menampilkan Hasil Perangkingan
 $nilai_preferensi = array();
 foreach($karyawans as $karyawan):
     $id_karyawan = $karyawan['id_karyawan'];
@@ -129,40 +130,125 @@ endforeach;
 <div class="main-content-row">
 <div class="container clearfix">
 	<div class="main-content main-content-full the-content">
-    	<div class="row">
-        	<div class="col-md-12">
-            	<h1 class="mt-4"><?php echo $judul_page; ?></h1>
-            	<hr>
-				<!-- Step : Perangkingan ==================== -->
-				<h3>Step : Perangkingan</h3>	
-            	<table class="pure-table pure-table-striped">
-                	<thead>
-                    	<tr>
-                    	    <th class="super-top-left">Nama Karyawan</th>
-                	        <th>Fuzzy Preference Value</th>
-            	            <th>Peringkat</th>
-        	            </tr>
-    	            </thead>
-	                <tbody>
-                    <?php 
-                    	$peringkat_terbaik = null;
-                	    foreach($karyawans as $karyawan): 
-            	            $id_karyawan = $karyawan['id_karyawan'];
-        	                $ranking = $peringkat[$id_karyawan];
-    	                    if ($ranking === 1) {
-                        	    $peringkat_terbaik = $id_karyawan;
-                    	    }
-                	    ?>
-            	        <tr>
-        	                <td><?php echo $karyawan['nama_karyawan']; ?></td>
-    	                    <td><?php echo round($fuzzy_preference[$id_karyawan], $digit); ?></td>
-                        	<td><?php echo $ranking; ?></td>
-                    	</tr>
-                    	<?php endforeach; ?>
-                	</tbody>
-            	</table>
-        	</div>
-    	</div>
+    	<h1 class="mt-4"><?php echo $judul_page; ?></h1>
+    	<!-- STEP 1. Matriks Keputusan(X) ==================== -->		
+		<h3>Step 1: Matriks Keputusan (X)</h3>
+		<table class="pure-table pure-table-striped">
+			<thead>
+				<tr class="super-top">
+					<th rowspan="2" class="super-top-left">Nama Karyawan</th>
+					<th colspan="<?php echo count($kriterias); ?>">Kriteria</th>
+				</tr>
+				<tr>
+					<?php foreach($kriterias as $kriteria ): ?>
+						<th><?php echo $kriteria['nama']; ?></th>
+					<?php endforeach; ?>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach($karyawans as $karyawan): ?>
+					<tr>
+						<td><?php echo $karyawan['nama_karyawan']; ?></td>
+						<?php						
+						foreach($kriterias as $kriteria):
+							$id_karyawan = $karyawan['id_karyawan'];
+							$id_kriteria = $kriteria['id_kriteria'];
+							echo '<td>';
+							echo $matriks_x[$id_kriteria][$id_karyawan];
+							echo '</td>';
+						endforeach;
+						?>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<!-- STEP 2. Bobot Preferensi (W) ==================== -->
+		<h3>Step 2: Bobot Preferensi (W)</h3>		
+		<table class="pure-table pure-table-striped">
+			<thead>
+				<tr>
+					<th>Nama Kriteria</th>
+					<th>Type</th>
+					<th>Bobot (W)</th>						
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach($kriterias as $hasil): ?>
+					<tr>
+						<td><?php echo $hasil['nama']; ?></td>
+						<td>
+						<?php
+						if($hasil['type'] == 'benefit') {
+							echo 'Benefit';
+						} elseif($hasil['type'] == 'cost') {
+							echo 'Cost';
+						}							
+						?>
+						</td>
+						<td><?php echo $hasil['bobot']; ?></td>							
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<!-- Step 3: Matriks Ternormalisasi (R) ==================== -->
+		<h3>Step 3: Matriks Ternormalisasi (R)</h3>			
+		<table class="pure-table pure-table-striped">
+			<thead>
+				<tr class="super-top">
+					<th rowspan="2" class="super-top-left">Nama Karyawan</th>
+					<th colspan="<?php echo count($kriterias); ?>">Kriteria</th>
+				</tr>
+				<tr>
+					<?php foreach($kriterias as $kriteria ): ?>
+						<th><?php echo $kriteria['nama']; ?></th>
+					<?php endforeach; ?>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach($karyawans as $karyawan): ?>
+					<tr>
+						<td><?php echo $karyawan['nama_karyawan']; ?></td>
+						<?php						
+						foreach($kriterias as $kriteria):
+							$id_karyawan = $karyawan['id_karyawan'];
+							$id_kriteria = $kriteria['id_kriteria'];
+							echo '<td>';
+							echo round($matriks_r[$id_kriteria][$id_karyawan], $digit);
+							echo '</td>';
+						endforeach;
+						?>
+					</tr>
+				<?php endforeach; ?>				
+			</tbody>
+		</table>
+		<!-- Step : Perangkingan ==================== -->
+		<h3>Step : Perangkingan</h3>	
+    	<table class="pure-table pure-table-striped">
+        	<thead>
+            	<tr>
+                    <th class="super-top-left">Nama Karyawan</th>
+            	    <th>Fuzzy Preference Value</th>
+    	            <th>Peringkat</th>
+    	        </tr>
+    	    </thead>
+	        <tbody>
+            <?php 
+            	$peringkat_terbaik = null;
+        	    foreach($karyawans as $karyawan): 
+                    $id_karyawan = $karyawan['id_karyawan'];
+                    $ranking = $peringkat[$id_karyawan];
+    	            if ($ranking === 1) {
+                	    $peringkat_terbaik = $id_karyawan;
+            	    }
+        	    ?>
+                <tr>
+                    <td><?php echo $karyawan['nama_karyawan']; ?></td>
+    	            <td><?php echo round($fuzzy_preference[$id_karyawan], $digit); ?></td>
+                    <td><?php echo $ranking; ?></td>
+            	</tr>
+            	<?php endforeach; ?>
+            	</tbody>
+        </table>
 	</div>
 </div><!-- .container -->
 </div><!-- .main-content-row -->
